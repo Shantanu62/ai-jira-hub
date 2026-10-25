@@ -1,85 +1,125 @@
 import streamlit as st
+from groq import Groq
 import requests
 import json
 
+# Page Configuration
 st.set_page_config(
     page_title="AI Product Discovery & Jira Delivery Hub",
     page_icon="🚀",
     layout="wide"
 )
 
+# Load Credentials from Streamlit Secrets or Sidebar fallback
+GROQ_API_KEY = st.secrets.get("GROQ_API_KEY", "")
+JIRA_URL = st.secrets.get("JIRA_URL", "")
+JIRA_EMAIL = st.secrets.get("JIRA_EMAIL", "")
+JIRA_API_TOKEN = st.secrets.get("JIRA_API_TOKEN", "")
+
+# Sidebar for Configuration Check
+st.sidebar.title("⚙️ Configuration Hub")
+st.sidebar.info("Connected directly to Groq & Jira Cloud APIs (No local backend required).")
+
+# Main Title
 st.title("🚀 AI Product Discovery & Jira Delivery Hub")
-st.markdown("Transform your raw product ideas into structured PRDs and sync them directly to Jira (`AIHUB`) using Gemini AI!")
+st.markdown("Transform your raw product ideas into structured PRDs and automatically sync actionable tasks to your Jira workspace.")
 
-product_idea = st.text_area(
-    "Enter your Product Idea:", 
-    placeholder="e.g., Build an AI-powered receipt scanner for small businesses...",
-    height=120
-)
+# Tabs for workflow
+tab1, tab2 = st.tabs(["📝 AI PRD Generator", "🔗 Jira Task Sync"])
 
-if st.button("Generate PRD & Sync to Jira", type="primary"):
-    if not product_idea.strip():
-        st.warning("Please enter a valid product idea first.")
-    else:
-        with st.spinner("🤖 Generating PRD with AI and syncing tickets to Jira... Please wait."):
-            try:
-                response = requests.post(
-                    "http://127.0.0.1:8000/api/generate-and-sync",
-                    json={"idea": product_idea},
-                    timeout=60
-                )
-                
-                if response.status_code == 200:
-                    result = response.json()
-                    st.success("Successfully generated PRD and synced with Jira!")
+with tab1:
+    st.header("Step 1: Generate Product Requirements Document (PRD)")
+    
+    product_idea = st.text_area(
+        "Enter your Product Idea / Feature Request:",
+        placeholder="e.g., Build an AI-powered resume parser that extracts skills and maps them to job descriptions."
+    )
+    
+    if st.button("Generate PRD"):
+        if not product_idea:
+            st.warning("Kripya pehle product idea enter karein.")
+        elif not GROQ_API_KEY:
+            st.error("Groq API Key missing hai! Kripya Streamlit Secrets mein configure karein.")
+        else:
+            with st.spinner("AI is crafting your PRD..."):
+                try:
+                    client = Groq(api_key=GROQ_API_KEY)
+                    prompt = f"""
+                    You are an expert Principal Product Manager. Generate a comprehensive Product Requirements Document (PRD) for the following idea:
+                    '{product_idea}'
                     
-                    prd_data = result.get("prd", {})
-                    jira_result = result.get("jira", {})
+                    Include:
+                    1. Executive Summary & Problem Statement
+                    2. Target User Personas
+                    3. Core Features & Functional Requirements
+                    4. Non-Functional Requirements
+                    5. Success Metrics (KPIs)
+                    """
                     
-                    prd_text = json.dumps(result, indent=2)
-                    st.download_button(
-                        label="📥 Download PRD as JSON / Text",
-                        data=prd_text,
-                        file_name="generated_prd.json",
-                        mime="application/json"
+                    completion = client.chat.completions.create(
+                        model="qwen-2.5-32b", # Ya aap jo model use kar rahe hain
+                        messages=[{"role": "user", "content": prompt}],
+                        temperature=0.7,
+                        max_tokens=2048
                     )
                     
-                    st.divider()
-                    st.subheader("📄 Generated Product Requirements Document (PRD)")
+                    prd_output = completion.choices[0].message.content
+                    st.session_state['generated_prd'] = prd_output
                     
-                    col1, col2 = st.columns(2)
-                    with col1:
-                        st.markdown(f"**Product Name:** {prd_data.get('product_name', 'N/A')}")
-                        st.markdown(f"**Objective:** {prd_data.get('objective', 'N/A')}")
-                    with col2:
-                        st.markdown(f"**Target Audience:** {prd_data.get('target_audience', 'N/A')}")
+                    st.success("PRD Generated Successfully!")
+                    st.markdown(prd_output)
                     
-                    st.divider()
-                    st.subheader("🎯 Jira Epics & User Stories Synced")
-                    
-                    epics = prd_data.get("epics", [])
-                    jira_domain = "https://laancy321-1792742540398.atlassian.net"
-                    
-                    for epic in epics:
-                        with st.expander(f"📦 Epic: {epic.get('epic_name', 'Epic')}"):
-                            st.write(f"**Description:** {epic.get('description', '')}")
-                            st.markdown("#### User Stories:")
-                            for story in epic.get('user_stories', []):
-                                st.markdown(f"- **{story.get('title')}**: {story.get('description')}")
-                                criteria = story.get('acceptance_criteria', [])
-                                if criteria:
-                                    st.markdown("  * *Acceptance Criteria:*")
-                                    for ac in criteria:
-                                        st.markdown(f"    * {ac}")
-                    
-                    st.markdown("---")
-                    st.markdown(f"🔗 **[Click here to view your Jira Board & Backlog]({jira_domain}/jira/software/projects/AIHUB/boards/3)**")
-                    
-                else:
-                    err_msg = response.json().get("detail", response.text)
-                    st.error(f"Backend Error: {err_msg}")
-                    
-            except requests.exceptions.ConnectionError:
-                st.error("Failed to connect to FastAPI backend. Ensure your Uvicorn server is running on port 8000!")
-            except Exception as e:
-                st.error(f"An unexpected error occurred: {e}")
+                except Exception as e:
+                    st.error(f"Error generating PRD: {e}")
+
+with tab2:
+    st.header("Step 2: Sync Tasks to Atlassian Jira")
+    
+    if 'generated_prd' in st.session_state:
+        st.info("Generated PRD is ready to be parsed into Jira Epics and Stories.")
+        
+        project_key = st.text_input("Jira Project Key:", value="AI")
+        
+        if st.button("Sync to Jira"):
+            if not JIRA_URL or not JIRA_EMAIL or not JIRA_API_TOKEN:
+                st.error("Jira credentials missing hain! Streamlit Secrets check karein.")
+            else:
+                with st.spinner("Creating Jira issues via REST API..."):
+                    try:
+                        # Jira API endpoint for issues
+                        api_url = f"{JIRA_URL.rstrip('/')}/rest/api/3/issue"
+                        auth = (JIRA_EMAIL, JIRA_API_TOKEN)
+                        headers = {"Content-Type": "application/json"}
+                        
+                        # Sample payload creation for Jira task
+                        payload = {
+                            "fields": {
+                                "project": {"key": project_key},
+                                "summary": "AI Generated Task from PRD Hub",
+                                "description": {
+                                    "type": "doc",
+                                    "version": 1,
+                                    "content": [{
+                                        "type": "paragraph",
+                                        "content": [{
+                                            "type": "text", 
+                                            "text": "Task automatically synced from AI Product Discovery Hub."
+                                        }]
+                                    }]
+                                },
+                                "issuetype": {"name": "Task"}
+                            }
+                        }
+                        
+                        response = requests.post(api_url, json=payload, auth=auth, headers=headers)
+                        
+                        if response.status_code == 201:
+                            issue_data = response.json()
+                            st.success(f"Successfully synced with Jira! Issue Key: {issue_data.get('key')}")
+                        else:
+                            st.error(f"Failed to sync with Jira. Response: {response.text}")
+                            
+                    except Exception as e:
+                        st.error(f"Jira connection error: {e}")
+    else:
+        st.warning("Pehle 'AI PRD Generator' tab mein jaakar PRD generate karein.")
