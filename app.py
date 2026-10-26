@@ -3,7 +3,36 @@ from groq import Groq
 import requests
 import json
 import datetime
+# --- Notion Configuration & Secrets ---
+NOTION_API_KEY = st.secrets.get("NOTION_API_KEY", "")
+NOTION_PAGE_ID = st.secrets.get("NOTION_PAGE_ID", "")
 
+def send_prd_to_notion(title, content):
+    url = "https://api.notion.com/v1/pages"
+    headers = {
+        "Authorization": f"Bearer {NOTION_API_KEY}",
+        "Content-Type": "application/json",
+        "Notion-Version": "2022-06-28"
+    }
+    payload = {
+        "parent": {"page_id": NOTION_PAGE_ID},
+        "properties": {
+            "title": {
+                "title": [{"text": {"content": title}}]
+            }
+        },
+        "children": [
+            {
+                "object": "block",
+                "type": "paragraph",
+                "paragraph": {
+                    "rich_text": [{"type": "text", "text": {"content": content[:2000]}}]
+                }
+            }
+        ]
+    }
+    res = requests.post(url, json=payload, headers=headers)
+    return res.status_code == 200
 # Page Configuration
 st.set_page_config(
     page_title="AI Product Discovery & Jira Delivery Hub",
