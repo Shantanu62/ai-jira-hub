@@ -11,22 +11,17 @@ st.set_page_config(
     layout="wide"
 )
 
-# --- Advanced SaaS Custom CSS Styling (Vibrant Colors & Modern UI) ---
+# --- Advanced SaaS Custom CSS Styling ---
 st.markdown("""
     <style>
-    /* Main Background */
     .main {
         background-color: #0b0f19;
         color: #f8fafc;
     }
-    
-    /* Modern Sidebar */
     [data-testid="stSidebar"] {
         background-color: #111827;
         border-right: 1px solid #1f2937;
     }
-    
-    /* Sleek SaaS Cards */
     .saas-card {
         background: linear-gradient(135deg, #111827 0%, #1f2937 100%);
         border: 1px solid #374151;
@@ -35,18 +30,6 @@ st.markdown("""
         box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.4);
         margin-bottom: 20px;
     }
-    
-    /* Status Badges */
-    .badge-success {
-        background-color: #064e3b;
-        color: #34d399;
-        padding: 4px 10px;
-        border-radius: 20px;
-        font-size: 0.8rem;
-        font-weight: 600;
-        border: 1px solid #059669;
-    }
-    
     .badge-primary {
         background-color: #312e81;
         color: #818cf8;
@@ -56,8 +39,6 @@ st.markdown("""
         font-weight: 600;
         border: 1px solid #4f46e5;
     }
-
-    /* Gradient Primary Buttons */
     .stButton>button {
         background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);
         color: white;
@@ -73,7 +54,6 @@ st.markdown("""
         transform: translateY(-2px);
         box-shadow: 0 6px 20px rgba(99, 102, 241, 0.6);
     }
-    
     h1, h2, h3 {
         letter-spacing: -0.5px;
         color: #f8fafc;
@@ -87,7 +67,7 @@ JIRA_URL = st.secrets.get("JIRA_URL", "")
 JIRA_EMAIL = st.secrets.get("JIRA_EMAIL", "")
 JIRA_API_TOKEN = st.secrets.get("JIRA_API_TOKEN", "")
 
-# Sidebar Configuration Hub with Rich UI
+# Sidebar Configuration Hub
 st.sidebar.title("⚙️ Control Center")
 st.sidebar.markdown("---")
 st.sidebar.markdown("### 🔌 API Status")
@@ -95,18 +75,18 @@ st.sidebar.markdown("🟢 **Groq LLM:** Active")
 st.sidebar.markdown("🔗 **Jira Cloud (`AIHUB`):** Connected")
 st.sidebar.markdown("---")
 
-# New Feature: Model Selector in Sidebar
+# Bulletproof Active Groq Models Config
 st.sidebar.markdown("### 🧠 AI Engine Config")
 selected_model = st.sidebar.selectbox(
     "Choose LLM Model:",
-    ["llama-3.3-70b-versatile", "llama3-70b-8192", "mixtral-8x7b-32768"],
+    ["llama-3.1-8b-instant", "mixtral-8x7b-32768"],
     index=0
 )
 
 st.sidebar.markdown("---")
 st.sidebar.info("🚀 Production-grade AI Product Hub built for high-speed delivery.")
 
-# Main Header Banner using HTML Container
+# Main Header Banner
 st.markdown("""
     <div class="saas-card" style="margin-top: 10px;">
         <h1 style='color: #818cf8; font-weight: 800; font-size: 2.2rem; margin-bottom: 5px;'>🚀 AI Product Discovery & Jira Delivery Hub</h1>
@@ -172,12 +152,10 @@ with tab1:
                     
                     st.success("✨ PRD Generated Successfully & Cached in Session!")
                     
-                    # Styled output container
                     st.markdown("""<div class="saas-card">""", unsafe_allow_html=True)
                     st.markdown(prd_output)
                     st.markdown("""</div>""", unsafe_allow_html=True)
                     
-                    # New Feature: Download PRD Button
                     st.download_button(
                         label="📥 Download PRD as Markdown File",
                         data=prd_output,
@@ -243,7 +221,7 @@ with tab2:
                             st.markdown(f"""
                                 <div class="saas-card" style="border-color: #059669;">
                                     <h3 style='color: #34d399; margin-top:0;'>🎉 Successfully Synced!</h3>
-                                    <p style='color: #f8fafc;'>Issue Key Created: <b>{issue_data.get('key')}</b></p>
+                                    <p style='color: #f8fafc; issue_data.get('key')'>Issue Key Created: <b>{issue_data.get('key')}</b></p>
                                     <p style='color: #94a3b8; font-size: 0.9rem;'>Check your Jira board (`{project_key}`) to view the live ticket.</p>
                                 </div>
                             """, unsafe_allow_html=True)
