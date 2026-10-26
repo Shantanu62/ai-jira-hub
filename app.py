@@ -79,7 +79,7 @@ st.sidebar.markdown("---")
 st.sidebar.markdown("### 🧠 AI Engine Config")
 selected_model = st.sidebar.text_input(
     "Groq Model Name:",
-    value="llama-3.3-70b-versatile",
+    value="openai/gpt-oss-120b",
     help="Groq console par jo bhi model active ho, yahan type kar sakte hain."
 )
 
