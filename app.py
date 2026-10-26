@@ -75,12 +75,12 @@ st.sidebar.markdown("🟢 **Groq LLM:** Active")
 st.sidebar.markdown("🔗 **Jira Cloud (`AIHUB`):** Connected")
 st.sidebar.markdown("---")
 
-# Bulletproof Active Groq Models Config
+# Flexible Model Input Box so you can type any active Groq model name
 st.sidebar.markdown("### 🧠 AI Engine Config")
-selected_model = st.sidebar.selectbox(
-    "Choose LLM Model:",
-    ["llama-3.1-8b-instant", "mixtral-8x7b-32768"],
-    index=0
+selected_model = st.sidebar.text_input(
+    "Groq Model Name:",
+    value="llama-3.3-70b-versatile",
+    help="Groq console par jo bhi model active ho, yahan type kar sakte hain."
 )
 
 st.sidebar.markdown("---")
@@ -104,7 +104,7 @@ with tab1:
     with col_l:
         st.header("Step 1: AI PRD Intelligence Engine")
     with col_r:
-        st.markdown('<span class="badge-primary">Model: Active</span>', unsafe_allow_html=True)
+        st.markdown(f'<span class="badge-primary">Model: {selected_model}</span>', unsafe_allow_html=True)
 
     product_idea = st.text_area(
         "Enter your Product Idea / Feature Request:",
@@ -195,6 +195,9 @@ with tab2:
                         auth = (JIRA_EMAIL, JIRA_API_TOKEN)
                         headers = {"Content-Type": "application/json"}
                         
+                        # Passing the actual generated PRD content to Jira description
+                        prd_text_content = st.session_state.get('generated_prd', 'No PRD generated.')
+                        
                         payload = {
                             "fields": {
                                 "project": {"key": project_key},
@@ -206,7 +209,7 @@ with tab2:
                                         "type": "paragraph",
                                         "content": [{
                                             "type": "text", 
-                                            "text": "Task automatically synced from AI Product Discovery & Jira Delivery Hub."
+                                            "text": prd_text_content[:2000]  # Truncated safely for Jira API limits
                                         }]
                                     }]
                                 },
@@ -218,10 +221,11 @@ with tab2:
                         
                         if response.status_code == 201:
                             issue_data = response.json()
+                            # Fixed style string bug here
                             st.markdown(f"""
                                 <div class="saas-card" style="border-color: #059669;">
                                     <h3 style='color: #34d399; margin-top:0;'>🎉 Successfully Synced!</h3>
-                                    <p style='color: #f8fafc; issue_data.get('key')'>Issue Key Created: <b>{issue_data.get('key')}</b></p>
+                                    <p style='color: #f8fafc;'>Issue Key Created: <b>{issue_data.get('key')}</b></p>
                                     <p style='color: #94a3b8; font-size: 0.9rem;'>Check your Jira board (`{project_key}`) to view the live ticket.</p>
                                 </div>
                             """, unsafe_allow_html=True)
